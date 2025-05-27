@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juego del Dinosaurio</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #fff;
+      border: 2px solid #000;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="800" height="200"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let gameSpeed = 6;
+    let gravity = 1;
+    let score = 0;
+    let gameActive = false;
+
+    class Dinosaur {
+      constructor() {
+        this.width = 50;
+        this.height = 50;
+        this.x = 50;
+        this.y = canvas.height - this.height;
+        this.yVelocity = 0;
+        this.jumping = false;
+      }
+
+      update() {
+        if (this.jumping) {
+          this.yVelocity += gravity;
+          this.y += this.yVelocity;
+
+          if (this.y >= canvas.height - this.height) {
+            this.y = canvas.height - this.height;
+            this.jumping = false;
+            this.yVelocity = 0;
+          }
+        }
+      }
+
+      jump() {
+        if (!this.jumping) {
+          this.jumping = true;
+          this.yVelocity = -15;
+        }
+      }
+
+      draw() {
+        ctx.fillStyle = 'green';
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+      }
+    }
+
+    class Obstacle {
+      constructor(speed) {
+        this.width = 20 + Math.random() * 30;
+        this.height = 20 + Math.random() * 50;
+        this.x = canvas.width;
+        this.y = canvas.height - this.height;
+        this.speed = speed;
+      }
+
+      update() {
+        this.x -= this.speed;
+      }
+
+      draw() {
+        ctx.fillStyle = 'red';
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+      }
+    }
+
+    const dino = new Dinosaur();
+    const obstacles = [];
+    let obstacleTimer = 0;
+    let spawnInterval = 90;
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (!gameActive) {
+        ctx.font = '24px Arial';
+        ctx.fillStyle = 'black';
+        ctx.fillText('Presiona ESPACIO para comenzar y saltar', 200, 100);
+        return;
+      }
+
+      dino.update();
+      dino.draw();
+
+      obstacleTimer++;
+      if (obstacleTimer > spawnInterval) {
+        obstacles.push(new Obstacle(gameSpeed));
+        obstacleTimer = 0;
+        if (spawnInterval > 30) spawnInterval -= 2;
+      }
+
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obs = obstacles[i];
+        obs.update();
+        obs.draw();
+
+        // Colisión
+        if (
+          dino.x < obs.x + obs.width &&
+          dino.x + dino.width > obs.x &&
+          dino.y < obs.y + obs.height &&
+          dino.y + dino.height > obs.y
+        ) {
+          alert('Game Over! Puntaje: ' + score);
+          document.location.reload();
+        }
+
+        // Eliminar obstáculos fuera de pantalla
+        if (obs.x + obs.width < 0) {
+          obstacles.splice(i, 1);
+          score++;
+          if (score % 10 === 0) gameSpeed++;
+        }
+      }
+
+      // Mostrar puntaje
+      ctx.font = '20px Arial';
+      ctx.fillStyle = 'black';
+      ctx.fillText('Puntaje: ' + score, 10, 20);
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        if (!gameActive) {
+          gameActive = true;
+          gameLoop();
+        } else {
+          dino.jump();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
